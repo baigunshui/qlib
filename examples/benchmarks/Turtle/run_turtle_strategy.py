@@ -32,6 +32,7 @@ if __name__ == "__main__":
         from qlib.backtest import get_strategy_executor
         from qlib.backtest.backtest import backtest_loop
 
+        # TurtleStrategy is configured in workflow_config_turtle.yaml.
         strategy_config = config["port_analysis_config"]["strategy"]
         strategy_config["kwargs"]["signal"] = (model, dataset)
 

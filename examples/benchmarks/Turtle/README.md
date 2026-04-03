@@ -24,4 +24,5 @@ python examples/benchmarks/Turtle/run_turtle_strategy.py
 
 ## 说明与限制
 该示例在 workflow 外形上参考 MA benchmark，但海龟策略本身是规则驱动，而不是预测驱动。
+策略入口使用 `TurtleStrategy`。
 在当前本地环境中，如果缺少完整 Qlib 运行依赖或编译扩展，可能无法完成端到端回测。
