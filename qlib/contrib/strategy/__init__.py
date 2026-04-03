@@ -1,31 +1,28 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-
-from .signal_strategy import (
-    TopkDropoutStrategy,
-    WeightStrategyBase,
-    EnhancedIndexingStrategy,
-)
-
-from .rule_strategy import (
-    TWAPStrategy,
-    SBBStrategyBase,
-    SBBStrategyEMA,
-)
-
-from .cost_control import SoftTopkStrategy
-
-from .ma_strategy import MAStrategy
+from importlib import import_module
 
 
-__all__ = [
-    "TopkDropoutStrategy",
-    "WeightStrategyBase",
-    "EnhancedIndexingStrategy",
-    "TWAPStrategy",
-    "SBBStrategyBase",
-    "SBBStrategyEMA",
-    "SoftTopkStrategy",
-    "MAStrategy",
-]
+_EXPORTS = {
+    "TopkDropoutStrategy": ".signal_strategy",
+    "WeightStrategyBase": ".signal_strategy",
+    "EnhancedIndexingStrategy": ".signal_strategy",
+    "TWAPStrategy": ".rule_strategy",
+    "SBBStrategyBase": ".rule_strategy",
+    "SBBStrategyEMA": ".rule_strategy",
+    "SoftTopkStrategy": ".cost_control",
+    "MAStrategy": ".ma_strategy",
+}
+
+__all__ = list(_EXPORTS)
+
+
+def __getattr__(name):
+    if name not in _EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+    module = import_module(_EXPORTS[name], package=__name__)
+    value = getattr(module, name)
+    globals()[name] = value
+    return value
