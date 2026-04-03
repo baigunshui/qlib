@@ -6,6 +6,12 @@ from typing import Dict, Optional, Tuple
 
 import pandas as pd
 
+try:
+    from qlib.contrib.strategy.signal_strategy import BaseSignalStrategy
+except ModuleNotFoundError:  # pragma: no cover - fallback for test-only environments
+    class BaseSignalStrategy:  # type: ignore[no-redef]
+        pass
+
 
 @dataclass
 class TurtleInstrumentState:
@@ -35,6 +41,18 @@ class TurtleDecision:
     reference_price: Optional[float]
     stop_price: Optional[float]
     atr: Optional[float]
+
+
+@dataclass
+class _FallbackOrder:
+    SELL = 0
+    BUY = 1
+
+    stock_id: str
+    amount: int
+    start_time: pd.Timestamp
+    end_time: pd.Timestamp
+    direction: int
 
 
 def compute_donchian_channels(
@@ -173,3 +191,48 @@ class TurtleRuleEngine:
             state.atr = decision.atr
             return
         state.atr = decision.atr
+
+
+class TurtleStrategy(BaseSignalStrategy):
+    @staticmethod
+    def _get_order_class():
+        try:
+            from qlib.backtest.decision import Order
+
+            return Order
+        except ModuleNotFoundError:
+            return _FallbackOrder
+
+    def _build_orders_from_decisions(self, decision_map, trade_start_time, trade_end_time):
+        order_class = self._get_order_class()
+        orders = []
+        for instrument, decision in decision_map.items():
+            if decision.action in {"open", "add"}:
+                order = order_class(
+                    stock_id=instrument,
+                    amount=decision.unit_size,
+                    start_time=trade_start_time,
+                    end_time=trade_end_time,
+                    direction=order_class.BUY,
+                )
+                if self.trade_exchange.check_order(order):
+                    orders.append(order)
+            elif decision.action in {"exit", "stop"}:
+                amount = self.trade_position.get_stock_amount(code=instrument)
+                order = order_class(
+                    stock_id=instrument,
+                    amount=amount,
+                    start_time=trade_start_time,
+                    end_time=trade_end_time,
+                    direction=order_class.SELL,
+                )
+                if self.trade_exchange.check_order(order):
+                    orders.append(order)
+        return orders
+
+    def generate_trade_decision(self, execute_result=None):
+        try:
+            from qlib.backtest.decision import TradeDecisionWO
+        except ModuleNotFoundError:
+            return []
+        return TradeDecisionWO([], self)

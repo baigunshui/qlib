@@ -13,6 +13,7 @@ _EXPORTS = {
     "SBBStrategyEMA": ".rule_strategy",
     "SoftTopkStrategy": ".cost_control",
     "MAStrategy": ".ma_strategy",
+    "TurtleStrategy": ".turtle_strategy",
 }
 
 __all__ = list(_EXPORTS)

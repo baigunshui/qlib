@@ -1,5 +1,6 @@
 import pandas as pd
 
+from qlib.contrib.strategy import TurtleStrategy
 from qlib.contrib.strategy.turtle_strategy import (
     TurtleInstrumentState,
     TurtlePortfolioState,
@@ -234,3 +235,38 @@ def test_apply_decision_updates_state_after_add():
     assert updated.units == 2
     assert updated.last_add_price == decision.reference_price
     assert updated.stop_price == decision.stop_price
+
+
+class _StubPosition:
+    def get_stock_amount(self, code):
+        return {"B": 200}.get(code, 0)
+
+
+class _StubExchange:
+    def check_order(self, order):
+        return order.amount > 0
+
+
+def test_turtle_strategy_is_exported():
+    assert TurtleStrategy.__name__ == "TurtleStrategy"
+
+
+def test_translate_decisions_builds_orders():
+    strategy = TurtleStrategy.__new__(TurtleStrategy)
+    strategy.trade_exchange = _StubExchange()
+    strategy.trade_position = _StubPosition()
+
+    decision_map = {
+        "A": type("Decision", (), {"action": "open", "unit_size": 50})(),
+        "B": type("Decision", (), {"action": "exit", "unit_size": 0})(),
+    }
+
+    orders = strategy._build_orders_from_decisions(
+        decision_map=decision_map,
+        trade_start_time=pd.Timestamp("2020-05-01"),
+        trade_end_time=pd.Timestamp("2020-05-01"),
+    )
+
+    assert len(orders) == 2
+    assert {order.stock_id for order in orders} == {"A", "B"}
+    assert {order.direction for order in orders} == {0, 1}
