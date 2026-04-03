@@ -1,36 +1,36 @@
-# Turtle Benchmark Example Design
+# Turtle Benchmark 示例设计
 
-## Overview
-This spec defines a new benchmark example for the Turtle strategy under `examples/benchmarks`, organized similarly to the existing MA example. The goal is to provide a configuration-driven, benchmark-style entry point that users can read and run with the same mental model as MA, while keeping the Turtle strategy logic inside the strategy layer instead of forcing it into a prediction model.
+## 概述
+本设计文档定义一个新的海龟策略 benchmark 示例，放置于 `examples/benchmarks` 下，整体组织方式参考现有的 MA 示例。目标是提供一套配置驱动、结构清晰、便于阅读和后续运行的 benchmark 示例入口，同时保持海龟策略的核心交易逻辑仍然位于策略层，而不是被强行塞进预测模型输出中。
 
-## Goals
-- Add a Turtle benchmark example under `examples/benchmarks`.
-- Match the overall usage pattern of the MA benchmark example.
-- Provide a runnable layout consisting of a config file, a run script, and a README.
-- Keep Turtle rule calculation in `TurtleStrategy`, not in the model output.
+## 目标
+- 在 `examples/benchmarks` 下新增海龟策略 benchmark 示例。
+- 保持与 MA benchmark 示例相近的使用方式和目录组织。
+- 提供一套由配置文件、运行脚本和 README 组成的完整示例结构。
+- 保持海龟规则计算由 `TurtleStrategy` 负责，而不是由模型输出海龟交易信号。
 
-## Non-Goals
-- Reorganizing the existing MA example directory.
-- Adding multiple Turtle example variants in the first iteration.
-- Rewriting Turtle logic to depend on predictive model scores.
+## 非目标
+- 不调整现有 MA 示例目录结构。
+- 第一版不增加多个海龟示例变体。
+- 不把海龟策略重写为依赖预测分数驱动的策略。
 
-## Directory Structure
-Create a dedicated directory:
+## 目录结构
+新增一个独立目录：
 
 - `examples/benchmarks/Turtle/README.md`
 - `examples/benchmarks/Turtle/run_turtle_strategy.py`
 - `examples/benchmarks/Turtle/workflow_config_turtle.yaml`
 
-The first version should stop here. Do not add extra `simple` or `direct` variants unless the initial example proves insufficient.
+第一版到此为止，不额外增加 `simple`、`direct` 等变体；除非后续证明当前示例不足以支撑使用。
 
-## Design Principles
-- Follow the benchmark example shape already used by MA.
-- Keep the public usage path simple: config + run script + README.
-- Keep the strategy semantics honest: the Turtle example may instantiate a model and dataset for workflow compatibility, but the trading logic remains rule-driven.
-- Avoid placing Turtle files under the MA directory. The similarity is structural, not thematic.
+## 设计原则
+- 目录结构和运行入口遵循 MA benchmark 的整体风格。
+- 对外使用路径保持简单，即“配置文件 + 运行脚本 + README”。
+- 保持语义清晰：海龟示例可以为了 workflow 兼容性实例化 model 和 dataset，但交易逻辑本身仍然是规则驱动。
+- 不把海龟示例放进 MA 目录中。两者相似的是组织方式，不是策略主题。
 
-## Configuration Design
-`workflow_config_turtle.yaml` should follow the MA benchmark style and include:
+## 配置设计
+`workflow_config_turtle.yaml` 应保持与 MA benchmark 类似的结构，至少包含：
 
 - `qlib_init`
 - `market`
@@ -38,9 +38,9 @@ The first version should stop here. Do not add extra `simple` or `direct` varian
 - `task`
 - `port_analysis_config`
 
-The configuration should preserve the `task.model` and `task.dataset` sections to stay compatible with the benchmark workflow shape. However, Turtle strategy execution should not rely on model scores as its trading signal source.
+其中，配置仍保留 `task.model` 和 `task.dataset`，以保持与 benchmark workflow 外形一致；但海龟策略执行时不应依赖模型分数作为交易信号来源。
 
-The strategy section should point to `TurtleStrategy` and provide explicit Turtle parameters, including:
+策略部分应指向 `TurtleStrategy`，并显式暴露海龟策略关键参数，包括：
 
 - `entry_window`
 - `exit_window`
@@ -50,53 +50,56 @@ The strategy section should point to `TurtleStrategy` and provide explicit Turtl
 - `max_active_instruments`
 - `risk_degree`
 
-## Runtime Flow
-`run_turtle_strategy.py` should mirror the MA example flow closely:
+## 运行链路
+`run_turtle_strategy.py` 应尽量贴近 MA 示例的执行流程：
 
-1. Initialize Qlib with local benchmark data.
-2. Load `workflow_config_turtle.yaml`.
-3. Instantiate the configured model and dataset.
-4. Run `model.fit(dataset)` for workflow compatibility.
-5. Build the strategy config using `TurtleStrategy`.
-6. Pass the instantiated model and dataset into the strategy config only as workflow-compatible context.
-7. Run the backtest and print or record results.
+1. 初始化本地 Qlib 数据环境。
+2. 加载 `workflow_config_turtle.yaml`。
+3. 实例化配置中的 model 和 dataset。
+4. 执行 `model.fit(dataset)`，用于保持 workflow 外形兼容。
+5. 构造 `TurtleStrategy` 对应的策略配置。
+6. 将实例化后的 model 和 dataset 作为 workflow 兼容上下文传入策略配置。
+7. 执行 backtest，并打印或记录结果。
 
-The important boundary is that `TurtleStrategy` remains responsible for Donchian breakout, ATR, pyramiding, stop-loss, and portfolio constraints. The model is not responsible for producing Turtle trading decisions.
+这里的关键边界是：
 
-## README Requirements
-`README.md` should explicitly cover:
+- `TurtleStrategy` 负责 Donchian 突破、ATR、加仓、止损和组合约束等海龟规则。
+- model 不负责生成海龟交易决策。
 
-- what this example is
-- how it differs from a predictive benchmark
-- how to run it
-- required data location or initialization prerequisites
-- the key Turtle parameters
-- current limitations
+## README 要求
+`README.md` 至少应明确说明以下内容：
 
-The README must explicitly say that the example keeps the benchmark workflow shape of MA, but the Turtle strategy itself is rule-based rather than prediction-driven.
+- 这个示例是什么
+- 它与预测驱动 benchmark 的差异
+- 如何运行
+- 所需数据目录或初始化前置条件
+- 海龟策略关键参数说明
+- 当前限制
 
-## Error Handling and User Expectations
-The example should communicate failures clearly:
+README 必须明确写出：该示例在 workflow 外形上参考 MA benchmark，但海龟策略本身是规则驱动，而不是预测驱动。
 
-- If Qlib data is missing, instruct the user to prepare the local data directory first.
-- If the local environment is missing compiled Qlib extensions or required runtime dependencies, make it clear that this is an environment issue, not a problem with the example structure.
-- If `TurtleStrategy` still has integration limitations relative to full end-to-end backtesting, the README should state that the example reflects the current supported strategy integration path.
+## 错误处理与用户预期
+该示例应对常见失败情况给出清晰说明：
 
-## Validation Scope
-For this repository context, the first version of “runnable” is defined as:
+- 如果本地没有 Qlib 数据，应提示用户先准备本地数据目录。
+- 如果本地环境缺少 Qlib 编译扩展或必要运行依赖，应明确说明这是环境问题，而不是示例结构问题。
+- 如果 `TurtleStrategy` 当前与完整端到端回测仍存在集成限制，README 应明确写明该示例反映的是当前支持的策略集成路径。
 
-- the example files are present and coherent
-- the configuration structure matches benchmark conventions
-- the run script follows the benchmark invocation pattern
-- the Turtle parameters are wired consistently to `TurtleStrategy`
+## 验证范围
+在当前仓库上下文中，第一版“可运行”的定义是：
 
-Given the current local environment constraints, the implementation should not assume that full end-to-end benchmark execution can be verified locally. The example should still be implemented so that it is structurally runnable in a complete Qlib environment.
+- 示例文件完整且彼此一致；
+- 配置结构符合 benchmark 约定；
+- 运行脚本遵循 benchmark 示例调用方式；
+- 海龟参数能够一致地传递给 `TurtleStrategy`。
 
-## Acceptance Criteria
-This design is considered implemented when:
+考虑到当前本地环境限制，实现时不应假设可以在本地完整验证端到端 benchmark 执行；但示例本身仍应按照完整 Qlib 环境下可运行的结构来设计和实现。
 
-- a new `examples/benchmarks/Turtle/` directory exists
-- it contains `README.md`, `run_turtle_strategy.py`, and `workflow_config_turtle.yaml`
-- the file organization is benchmark-style and analogous to MA
-- the run path uses `TurtleStrategy`
-- the documentation clearly explains the rule-driven nature of the example and its runtime prerequisites
+## 验收标准
+当满足以下条件时，可认为该设计已实现：
+
+- 存在新的 `examples/benchmarks/Turtle/` 目录；
+- 目录中包含 `README.md`、`run_turtle_strategy.py` 和 `workflow_config_turtle.yaml`；
+- 文件组织方式为 benchmark 风格，并与 MA 示例在结构上保持类比；
+- 运行路径使用 `TurtleStrategy`；
+- 文档明确说明该示例是规则驱动，并写清运行前提与限制。
