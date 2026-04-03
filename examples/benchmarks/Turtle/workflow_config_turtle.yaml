@@ -51,3 +51,22 @@ task:
                     fit_start_time: 2008-01-01
                     fit_end_time: 2014-12-31
                     instruments: *market
+            segments:
+                train: [2008-01-01, 2014-12-31]
+                valid: [2015-01-01, 2016-12-31]
+                test: [2017-01-01, 2020-08-01]
+    record:
+        - class: SignalRecord
+          module_path: qlib.workflow.record_temp
+          kwargs:
+            model: <MODEL>
+            dataset: <DATASET>
+        - class: SigAnaRecord
+          module_path: qlib.workflow.record_temp
+          kwargs:
+            ana_long_short: False
+            ann_scaler: 252
+        - class: PortAnaRecord
+          module_path: qlib.workflow.record_temp
+          kwargs:
+            config: *port_analysis_config
