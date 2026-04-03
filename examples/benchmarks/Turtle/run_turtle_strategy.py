@@ -6,6 +6,7 @@ Run Turtle strategy benchmark example.
 """
 
 import os
+from copy import deepcopy
 
 import qlib
 import yaml
@@ -29,46 +30,20 @@ if __name__ == "__main__":
         dataset = init_instance_by_config(config["task"]["dataset"])
         model.fit(dataset)
 
-        from qlib.backtest import get_strategy_executor
-        from qlib.backtest.backtest import backtest_loop
+        recorder = R.get_recorder()
+        for record_config in config["task"]["record"]:
+            record_config = deepcopy(record_config)
+            kwargs = record_config.setdefault("kwargs", {})
+            if kwargs.get("model") == "<MODEL>":
+                kwargs["model"] = model
+            if kwargs.get("dataset") == "<DATASET>":
+                kwargs["dataset"] = dataset
+            record = init_instance_by_config(
+                record_config,
+                recorder=recorder,
+                default_module="qlib.workflow.record_temp",
+            )
+            record.generate()
 
-        # TurtleStrategy is configured in workflow_config_turtle.yaml.
-        strategy_config = config["port_analysis_config"]["strategy"]
-        strategy_config["kwargs"]["signal"] = (model, dataset)
-
-        executor_config = {
-            "class": "SimulatorExecutor",
-            "module_path": "qlib.backtest.executor",
-            "kwargs": {
-                "time_per_step": "day",
-                "generate_portfolio_metrics": True,
-            },
-        }
-
-        backtest_config = config["port_analysis_config"]["backtest"]
-        strategy, executor = get_strategy_executor(
-            start_time=backtest_config["start_time"],
-            end_time=backtest_config["end_time"],
-            strategy=strategy_config,
-            executor=executor_config,
-            benchmark=backtest_config["benchmark"],
-            account=backtest_config["account"],
-            exchange_kwargs=backtest_config["exchange_kwargs"],
-        )
-
-        portfolio_dict, indicator_dict = backtest_loop(
-            start_time=backtest_config["start_time"],
-            end_time=backtest_config["end_time"],
-            trade_strategy=strategy,
-            trade_executor=executor,
-        )
-
-        print("Portfolio analysis results:")
-        for key, value in portfolio_dict.items():
-            print(f"{key}:")
-            print(value[0])
-
-        print("\nIndicator analysis:")
-        for key, value in indicator_dict.items():
-            print(f"{key}:")
-            print(value[0])
+        print("Experiment: Turtle_Strategy")
+        print(f"Recorder ID: {recorder.id}")
