@@ -159,3 +159,78 @@ def test_rule_engine_prioritizes_stop_over_add():
 
     assert result.action == "stop"
     assert result.target_units == 0
+
+
+def _portfolio_frames():
+    dates = pd.date_range("2020-03-01", periods=4, freq="D")
+    frame_a = pd.DataFrame(
+        {"high": [10.0, 10.5, 11.1, 11.8], "low": [9.0, 9.2, 9.7, 10.8], "close": [9.5, 10.0, 11.0, 11.7]},
+        index=dates,
+    )
+    frame_b = pd.DataFrame(
+        {"high": [20.0, 20.2, 21.0, 21.8], "low": [18.0, 18.5, 19.2, 20.5], "close": [19.0, 19.8, 20.9, 21.7]},
+        index=dates,
+    )
+    return {"A": frame_a, "B": frame_b}
+
+
+def test_portfolio_evaluation_limits_active_instruments():
+    engine = TurtleRuleEngine(entry_window=2, exit_window=2, atr_window=2, risk_pct=0.01)
+    portfolio = TurtlePortfolioState(cash=100000.0)
+
+    decisions = engine.evaluate_portfolio(
+        instrument_frames=_portfolio_frames(),
+        portfolio_state=portfolio,
+        portfolio_value=100000.0,
+        contract_scale=1.0,
+        max_units_per_instrument=4,
+        max_active_instruments=1,
+    )
+
+    opened = [code for code, decision in decisions.items() if decision.action == "open"]
+    assert len(opened) == 1
+
+
+def test_portfolio_evaluation_skips_open_when_cash_is_insufficient():
+    engine = TurtleRuleEngine(entry_window=2, exit_window=2, atr_window=2, risk_pct=0.50)
+    portfolio = TurtlePortfolioState(cash=100.0)
+
+    decisions = engine.evaluate_portfolio(
+        instrument_frames={"A": _portfolio_frames()["A"]},
+        portfolio_state=portfolio,
+        portfolio_value=100.0,
+        contract_scale=1000.0,
+        max_units_per_instrument=4,
+        max_active_instruments=2,
+    )
+
+    assert decisions["A"].action == "hold"
+
+
+def test_apply_decision_updates_state_after_add():
+    engine = TurtleRuleEngine(entry_window=2, exit_window=2, atr_window=2, risk_pct=0.01)
+    portfolio = TurtlePortfolioState(cash=100000.0)
+    state = portfolio.ensure_instrument("A")
+    state.units = 1
+    state.entry_price = 12.0
+    state.last_add_price = 12.0
+    state.stop_price = 10.0
+    state.atr = 1.0
+
+    decision = engine.evaluate_instrument(
+        instrument="A",
+        frame=pd.DataFrame(
+            {"high": [10.0, 11.0, 12.0, 13.0], "low": [9.0, 10.0, 11.0, 12.0], "close": [9.5, 10.8, 12.0, 12.7]},
+            index=pd.date_range("2020-04-01", periods=4, freq="D"),
+        ),
+        portfolio_state=portfolio,
+        portfolio_value=100000.0,
+        contract_scale=1.0,
+        max_units_per_instrument=4,
+    )
+    engine.apply_decision("A", decision, portfolio)
+
+    updated = portfolio.ensure_instrument("A")
+    assert updated.units == 2
+    assert updated.last_add_price == decision.reference_price
+    assert updated.stop_price == decision.stop_price

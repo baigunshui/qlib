@@ -112,3 +112,64 @@ class TurtleRuleEngine:
             return TurtleDecision("open", 1, unit_size, latest_close, latest_close - 2 * atr_value, atr_value)
 
         return TurtleDecision("hold", state.units, unit_size, latest_close, state.stop_price, atr_value)
+
+    def evaluate_portfolio(
+        self,
+        instrument_frames: dict,
+        portfolio_state: TurtlePortfolioState,
+        portfolio_value: float,
+        contract_scale: float,
+        max_units_per_instrument: int,
+        max_active_instruments: int,
+    ) -> dict:
+        decisions = {}
+        active_count = sum(1 for state in portfolio_state.instrument_states.values() if state.units > 0)
+        remaining_slots = max(max_active_instruments - active_count, 0)
+
+        for instrument, frame in instrument_frames.items():
+            decision = self.evaluate_instrument(
+                instrument=instrument,
+                frame=frame,
+                portfolio_state=portfolio_state,
+                portfolio_value=portfolio_value,
+                contract_scale=contract_scale,
+                max_units_per_instrument=max_units_per_instrument,
+            )
+            estimated_cost = decision.unit_size * float(frame["close"].iloc[-1]) * contract_scale
+
+            if decision.action == "open":
+                if remaining_slots <= 0 or estimated_cost > portfolio_state.cash:
+                    decision = TurtleDecision("hold", 0, 0, None, None, decision.atr)
+                else:
+                    remaining_slots -= 1
+
+            if decision.action == "add" and estimated_cost > portfolio_state.cash:
+                decision = TurtleDecision("hold", portfolio_state.ensure_instrument(instrument).units, 0, None, None, decision.atr)
+
+            decisions[instrument] = decision
+
+        return decisions
+
+    def apply_decision(self, instrument: str, decision: TurtleDecision, portfolio_state: TurtlePortfolioState) -> None:
+        state = portfolio_state.ensure_instrument(instrument)
+        if decision.action in {"exit", "stop"}:
+            state.units = 0
+            state.entry_price = None
+            state.last_add_price = None
+            state.stop_price = None
+            state.atr = decision.atr
+            return
+        if decision.action == "open":
+            state.units = decision.target_units
+            state.entry_price = decision.reference_price
+            state.last_add_price = decision.reference_price
+            state.stop_price = decision.stop_price
+            state.atr = decision.atr
+            return
+        if decision.action == "add":
+            state.units = decision.target_units
+            state.last_add_price = decision.reference_price
+            state.stop_price = decision.stop_price
+            state.atr = decision.atr
+            return
+        state.atr = decision.atr
