@@ -195,6 +195,31 @@ class TurtleRuleEngine:
 
 
 class TurtleStrategy(BaseSignalStrategy):
+    def __init__(
+        self,
+        *,
+        entry_window: int = 20,
+        exit_window: int = 10,
+        atr_window: int = 14,
+        risk_pct: float = 0.01,
+        max_units_per_instrument: int = 4,
+        max_active_instruments: int = 10,
+        **kwargs,
+    ):
+        self.entry_window = entry_window
+        self.exit_window = exit_window
+        self.atr_window = atr_window
+        self.risk_pct = risk_pct
+        self.max_units_per_instrument = max_units_per_instrument
+        self.max_active_instruments = max_active_instruments
+        self.rule_engine = TurtleRuleEngine(
+            entry_window=entry_window,
+            exit_window=exit_window,
+            atr_window=atr_window,
+            risk_pct=risk_pct,
+        )
+        super().__init__(**kwargs)
+
     @staticmethod
     def _get_order_class():
         try:

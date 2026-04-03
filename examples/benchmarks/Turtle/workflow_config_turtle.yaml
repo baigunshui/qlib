@@ -10,9 +10,7 @@ port_analysis_config: &port_analysis_config
         class: TurtleStrategy
         module_path: qlib.contrib.strategy
         kwargs:
-            signal:
-                - <MODEL>
-                - <DATASET>
+            signal: <PRED>
             entry_window: 20
             exit_window: 10
             atr_window: 14

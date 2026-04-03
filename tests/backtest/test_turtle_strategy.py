@@ -250,6 +250,28 @@ def test_turtle_strategy_is_exported():
     assert TurtleStrategy.__name__ == "TurtleStrategy"
 
 
+def test_turtle_strategy_consumes_turtle_kwargs():
+    signal = pd.Series([1.0], index=pd.Index(["A"]))
+
+    strategy = TurtleStrategy(
+        signal=signal,
+        entry_window=20,
+        exit_window=10,
+        atr_window=14,
+        risk_pct=0.01,
+        max_units_per_instrument=4,
+        max_active_instruments=10,
+        risk_degree=0.95,
+    )
+
+    assert strategy.entry_window == 20
+    assert strategy.exit_window == 10
+    assert strategy.atr_window == 14
+    assert strategy.risk_pct == 0.01
+    assert strategy.max_units_per_instrument == 4
+    assert strategy.max_active_instruments == 10
+
+
 def test_translate_decisions_builds_orders():
     strategy = TurtleStrategy.__new__(TurtleStrategy)
     strategy.trade_exchange = _StubExchange()
