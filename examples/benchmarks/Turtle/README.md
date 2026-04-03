@@ -5,8 +5,14 @@
 
 ## 运行方式
 ```bash
-python examples/benchmarks/Turtle/run_turtle_strategy.py
+PYTHONPATH=. python examples/benchmarks/Turtle/run_turtle_strategy.py
 ```
+
+## 查看回测结果
+脚本运行后会在 `Turtle_Strategy` 实验下生成 recorder。
+回测结果主要由 `PortAnaRecord` 记录。
+运行结束后可根据终端输出中的 `Recorder ID` 查看对应实验记录。
+如果当前环境不完整，可能会影响端到端记录生成。
 
 ## 前置条件
 - 已准备本地 Qlib 数据目录 `~/.qlib/qlib_data/cn_data`
