@@ -9,6 +9,7 @@ import pandas as pd
 try:
     from qlib.contrib.strategy.signal_strategy import BaseSignalStrategy
 except ModuleNotFoundError:  # pragma: no cover - fallback for test-only environments
+
     class BaseSignalStrategy:  # type: ignore[no-redef]
         pass
 
@@ -55,9 +56,7 @@ class _FallbackOrder:
     direction: int
 
 
-def compute_donchian_channels(
-    frame: pd.DataFrame, entry_window: int, exit_window: int
-) -> Tuple[pd.Series, pd.Series]:
+def compute_donchian_channels(frame: pd.DataFrame, entry_window: int, exit_window: int) -> Tuple[pd.Series, pd.Series]:
     upper = frame["high"].shift(1).rolling(entry_window).max()
     lower = frame["low"].shift(1).rolling(exit_window).min()
     return upper, lower
@@ -162,7 +161,9 @@ class TurtleRuleEngine:
                     remaining_slots -= 1
 
             if decision.action == "add" and estimated_cost > portfolio_state.cash:
-                decision = TurtleDecision("hold", portfolio_state.ensure_instrument(instrument).units, 0, None, None, decision.atr)
+                decision = TurtleDecision(
+                    "hold", portfolio_state.ensure_instrument(instrument).units, 0, None, None, decision.atr
+                )
 
             decisions[instrument] = decision
 

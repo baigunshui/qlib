@@ -2,7 +2,6 @@ import pandas as pd
 
 from qlib.contrib.strategy import TurtleStrategy
 from qlib.contrib.strategy.turtle_strategy import (
-    TurtleInstrumentState,
     TurtlePortfolioState,
     TurtleRuleEngine,
     compute_atr,
